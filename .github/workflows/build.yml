@@ -1,40 +1,37 @@
-name: build
-on: 
-  push: 
-    branches: 
-      - main
+# action 的名称
+name: Deploy GitHub Pages
+
+# 触发条件：在 push 到 main 分支后
+on:
+  push:
+    branches:
+      - master
+
+# 任务
 jobs:
   build-and-deploy:
+    # 服务器环境：最新版 Ubuntu
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout 🛎️
-        uses: actions/checkout@v2 # If you're using actions/checkout@v2 you must set persist-credentials to false in most cases for the deployment to work correctly.
+      # 拉取代码
+      - name: Checkout
+        uses: actions/checkout@v2
         with:
           persist-credentials: false
 
-      - name: Install and Build 🔧 # This example project is built using npm and outputs the result to the 'build' folder. Replace with the commands required to build your project, or remove this step entirely if your site is pre-built.
-        run: |
-          npm install  # 安装依赖
-          npm run build  # 执行打包
-          cd ./packages/demoPro/ # 切换到 dist 目录
-          tar -czvf dist.tar dist # 目标文件进行打包
-      - name: Deploy 🚀
-        uses: cross-the-world/ssh-scp-ssh-pipelines@latest # 因为构建之后，需要把代码上传到服务器上，所以需要连接到ssh，并且做一个安全拷贝(security copy)操作
-        env:
-          WELCOME: "ssh scp ssh pipelines"
-          LASTSSH: "Doing something after copying"
+      # 生成静态文件
+      - name: Build
+        run: npm install && npm run build
+
+      # 部署到 GitHub Pages
+      - name: Deploy
+        # 使用别人写好的一个 action
+        uses: JamesIves/github-pages-deploy-action@releases/v3
         with:
-         host: ${{ secrets.DR_HOST }}
-         user: ${{ secrets.DR_USER }}
-         pass: ${{ secrets.DR_PASS }}
-         port: ${{ secrets.DR_PORT }}
-         connect_timeout: 10s
-         first_ssh: |
-            rm -rf /usr/local/webserver/nginx/html/dist
-            mkdir -p /usr/local/webserver/nginx/html/dist
-         scp: |
-           './packages/demoPro/dist.tar' => /usr/local/webserver/nginx/html
-         last_ssh: |
-            cd /usr/local/webserver/nginx/html # 切换到部署目录
-            tar -xzvf dist.tar  # 将 tar 打包文件进行解压到当前部署目录
-           
+          # 这里的 ACCESS_TOKEN 名字需要和下文中的相对应
+          ACCESS_TOKEN: ${{ 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 }}
+          # 打包后的文件部署到哪个分支上
+          BRANCH: gh-pages
+          # 打包后的文件在哪里
+          FOLDER: dist
+
